@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 
@@ -143,7 +144,6 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 
 def _parse_args(argv=None):
-    import argparse
     parser = argparse.ArgumentParser(description="Salesforce MCP Server")
     parser.add_argument("--transport", choices=["stdio", "http"], default="stdio")
     parser.add_argument("--host", default="127.0.0.1", help="Host for HTTP/SSE transport")

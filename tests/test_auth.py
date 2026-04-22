@@ -143,3 +143,35 @@ def test_get_valid_tokens_falls_back_to_oauth_flow_when_refresh_fails(tmp_path, 
 
     mock_flow.assert_called_once()
     assert result["access_token"] == "new_at"
+
+
+def test_get_token_from_env_returns_access_token(monkeypatch):
+    import sys
+    sys.modules.pop("config", None)
+    monkeypatch.setenv("SALESFORCE_ACCESS_TOKEN", "direct_token_abc")
+    import importlib
+    import config as cfg
+    importlib.reload(cfg)
+    import auth
+    importlib.reload(auth)
+
+    result = auth.get_token_from_env()
+    assert result == {"access_token": "direct_token_abc"}
+
+
+def test_get_valid_tokens_uses_direct_token_when_access_token_set(mocker, monkeypatch):
+    import sys
+    sys.modules.pop("config", None)
+    monkeypatch.setenv("SALESFORCE_ACCESS_TOKEN", "mytoken")
+    import importlib
+    import config as cfg
+    importlib.reload(cfg)
+    import auth
+    importlib.reload(auth)
+
+    mock_oauth = mocker.patch("auth.run_oauth_flow")
+
+    result = auth.get_valid_tokens()
+
+    assert result == {"access_token": "mytoken"}
+    mock_oauth.assert_not_called()

@@ -91,7 +91,22 @@ def run_oauth_flow() -> dict:
     return _exchange_code(auth_code)
 
 
+def get_token_from_env() -> dict:
+    return {"access_token": config.ACCESS_TOKEN}
+
+
+def get_token_via_password() -> dict:
+    # Placeholder — implemented in Task 3
+    raise NotImplementedError
+
+
 def get_valid_tokens() -> dict:
+    if config.ACCESS_TOKEN:
+        return get_token_from_env()
+
+    if config.USERNAME and config.PASSWORD:
+        return get_token_via_password()
+
     tokens = load_tokens()
 
     if tokens is None:

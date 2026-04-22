@@ -98,16 +98,10 @@ def test_refresh_access_token_raises_on_http_error(mocker):
         auth.refresh_access_token("bad_rt")
 
 
-def test_get_token_from_env_raises_when_access_token_not_set():
-    import sys
-    sys.modules.pop("config", None)
-    import importlib
-    import config as cfg
-    importlib.reload(cfg)
-    import auth
-    importlib.reload(auth)
-
+def test_get_token_from_env_raises_when_access_token_not_set(monkeypatch):
+    monkeypatch.setattr("config.ACCESS_TOKEN", "")
     with pytest.raises(ValueError, match="SALESFORCE_ACCESS_TOKEN is not set"):
+        import auth
         auth.get_token_from_env()
 
 

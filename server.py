@@ -142,10 +142,45 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=f"Error: {e}")]
 
 
+def _parse_args(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Salesforce MCP Server")
+    parser.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    parser.add_argument("--host", default="127.0.0.1", help="Host for HTTP/SSE transport")
+    parser.add_argument("--port", type=int, default=8000, help="Port for HTTP/SSE transport")
+    return parser.parse_args(argv)
+
+
+def run_http_server(host: str, port: int) -> None:
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    import uvicorn
+
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+            await app.run(streams[0], streams[1], app.create_initialization_options())
+
+    starlette_app = Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Mount("/messages/", app=sse.handle_post_message),
+        ]
+    )
+
+    uvicorn.run(starlette_app, host=host, port=port)
+
+
 async def main() -> None:
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    args = _parse_args()
+    if args.transport == "http":
+        run_http_server(args.host, args.port)
+    else:
+        asyncio.run(main())

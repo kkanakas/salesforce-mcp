@@ -1,7 +1,6 @@
 import os
 import pytest
 
-# Set env vars at module scope so they are available before any import.
 os.environ.setdefault("SALESFORCE_CLIENT_ID", "test_client_id")
 os.environ.setdefault("SALESFORCE_CLIENT_SECRET", "test_secret")
 os.environ.setdefault("SALESFORCE_INSTANCE_URL", "https://test.salesforce.com")
@@ -14,12 +13,26 @@ _REQUIRED_ENV = {
     "SALESFORCE_REDIRECT_URI": "http://localhost:8788/callback",
 }
 
+_OPTIONAL_ENV = [
+    "SALESFORCE_ACCESS_TOKEN",
+    "SALESFORCE_USERNAME",
+    "SALESFORCE_PASSWORD",
+    "SALESFORCE_SECURITY_TOKEN",
+]
+
 
 @pytest.fixture(autouse=True)
 def restore_env():
-    """Restore required env vars before each test so test_config teardown doesn't break later tests."""
+    """Restore required env vars and clear optional vars before each test."""
+    import sys
     for key, val in _REQUIRED_ENV.items():
         os.environ[key] = val
+    for key in _OPTIONAL_ENV:
+        os.environ.pop(key, None)
+    sys.modules.pop("config", None)
     yield
     for key, val in _REQUIRED_ENV.items():
         os.environ[key] = val
+    for key in _OPTIONAL_ENV:
+        os.environ.pop(key, None)
+    sys.modules.pop("config", None)

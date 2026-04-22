@@ -41,17 +41,6 @@ def test_config_redirect_uri_defaults():
     assert cfg.REDIRECT_URI == "http://localhost:8788/callback"
 
 
-def test_config_raises_on_missing_client_id():
-    with pytest.raises(KeyError, match="SALESFORCE_CLIENT_ID"):
-        _reload_config(
-            overrides={
-                "SALESFORCE_CLIENT_SECRET": "csecret",
-                "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
-            },
-            remove=["SALESFORCE_CLIENT_ID"],
-        )
-
-
 def test_config_raises_on_missing_instance_url():
     with pytest.raises(KeyError, match="SALESFORCE_INSTANCE_URL"):
         _reload_config(
@@ -61,3 +50,79 @@ def test_config_raises_on_missing_instance_url():
             },
             remove=["SALESFORCE_INSTANCE_URL"],
         )
+
+
+def test_config_client_id_optional_when_absent():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_SECRET": "csecret",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+        },
+        remove=["SALESFORCE_CLIENT_ID"],
+    )
+    assert cfg.CLIENT_ID == ""
+
+
+def test_config_client_secret_optional_when_absent():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_ID": "cid",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+        },
+        remove=["SALESFORCE_CLIENT_SECRET"],
+    )
+    assert cfg.CLIENT_SECRET == ""
+
+
+def test_config_access_token_optional():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_ID": "cid",
+            "SALESFORCE_CLIENT_SECRET": "csecret",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+            "SALESFORCE_ACCESS_TOKEN": "mytoken",
+        },
+    )
+    assert cfg.ACCESS_TOKEN == "mytoken"
+
+
+def test_config_access_token_empty_when_absent():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_ID": "cid",
+            "SALESFORCE_CLIENT_SECRET": "csecret",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+        },
+        remove=["SALESFORCE_ACCESS_TOKEN"],
+    )
+    assert cfg.ACCESS_TOKEN == ""
+
+
+def test_config_username_password_security_token_optional():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_ID": "cid",
+            "SALESFORCE_CLIENT_SECRET": "csecret",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+            "SALESFORCE_USERNAME": "user@example.com",
+            "SALESFORCE_PASSWORD": "pass",
+            "SALESFORCE_SECURITY_TOKEN": "tok",
+        },
+    )
+    assert cfg.USERNAME == "user@example.com"
+    assert cfg.PASSWORD == "pass"
+    assert cfg.SECURITY_TOKEN == "tok"
+
+
+def test_config_username_password_security_token_empty_when_absent():
+    cfg = _reload_config(
+        overrides={
+            "SALESFORCE_CLIENT_ID": "cid",
+            "SALESFORCE_CLIENT_SECRET": "csecret",
+            "SALESFORCE_INSTANCE_URL": "https://org.salesforce.com",
+        },
+        remove=["SALESFORCE_USERNAME", "SALESFORCE_PASSWORD", "SALESFORCE_SECURITY_TOKEN"],
+    )
+    assert cfg.USERNAME == ""
+    assert cfg.PASSWORD == ""
+    assert cfg.SECURITY_TOKEN == ""

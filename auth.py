@@ -98,8 +98,18 @@ def get_token_from_env() -> dict:
 
 
 def get_token_via_password() -> dict:
-    # Placeholder — implemented in Task 3
-    raise NotImplementedError("Password auth is not yet implemented")
+    response = requests.post(
+        f"{config.INSTANCE_URL}/services/oauth2/token",
+        data={
+            "grant_type": "password",
+            "client_id": config.CLIENT_ID,
+            "client_secret": config.CLIENT_SECRET,
+            "username": config.USERNAME,
+            "password": config.PASSWORD + config.SECURITY_TOKEN,
+        },
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def get_valid_tokens() -> dict:

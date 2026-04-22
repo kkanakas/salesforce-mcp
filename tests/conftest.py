@@ -30,9 +30,11 @@ def restore_env():
     for key in _OPTIONAL_ENV:
         os.environ.pop(key, None)
     sys.modules.pop("config", None)
+    sys.modules.pop("auth", None)
     yield
     for key, val in _REQUIRED_ENV.items():
         os.environ[key] = val
     for key in _OPTIONAL_ENV:
         os.environ.pop(key, None)
     sys.modules.pop("config", None)
+    sys.modules.pop("auth", None)

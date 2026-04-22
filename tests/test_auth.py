@@ -182,3 +182,99 @@ def test_get_valid_tokens_uses_direct_token_when_access_token_set(mocker, monkey
 
     assert result == {"access_token": "mytoken"}
     mock_oauth.assert_not_called()
+
+
+def test_get_token_via_password_posts_credentials(mocker, monkeypatch):
+    monkeypatch.setattr("config.CLIENT_ID", "test_client_id")
+    monkeypatch.setattr("config.CLIENT_SECRET", "test_secret")
+    monkeypatch.setattr("config.INSTANCE_URL", "https://test.salesforce.com")
+    monkeypatch.setattr("config.USERNAME", "user@example.com")
+    monkeypatch.setattr("config.PASSWORD", "pass123")
+    monkeypatch.setattr("config.SECURITY_TOKEN", "tokABC")
+
+    mock_post = mocker.patch("auth.requests.post")
+    mock_post.return_value.json.return_value = {"access_token": "pw_token"}
+    mock_post.return_value.raise_for_status = lambda: None
+
+    import auth
+    result = auth.get_token_via_password()
+
+    mock_post.assert_called_once_with(
+        "https://test.salesforce.com/services/oauth2/token",
+        data={
+            "grant_type": "password",
+            "client_id": "test_client_id",
+            "client_secret": "test_secret",
+            "username": "user@example.com",
+            "password": "pass123tokABC",
+        },
+    )
+    assert result == {"access_token": "pw_token"}
+
+
+def test_get_token_via_password_appends_empty_security_token(mocker, monkeypatch):
+    monkeypatch.setattr("config.CLIENT_ID", "test_client_id")
+    monkeypatch.setattr("config.CLIENT_SECRET", "test_secret")
+    monkeypatch.setattr("config.INSTANCE_URL", "https://test.salesforce.com")
+    monkeypatch.setattr("config.USERNAME", "user@example.com")
+    monkeypatch.setattr("config.PASSWORD", "pass123")
+    monkeypatch.setattr("config.SECURITY_TOKEN", "")
+
+    mock_post = mocker.patch("auth.requests.post")
+    mock_post.return_value.json.return_value = {"access_token": "pw_token"}
+    mock_post.return_value.raise_for_status = lambda: None
+
+    import auth
+    auth.get_token_via_password()
+
+    call_data = mock_post.call_args[1]["data"]
+    assert call_data["password"] == "pass123"
+
+
+def test_get_token_via_password_raises_on_http_error(mocker, monkeypatch):
+    monkeypatch.setattr("config.CLIENT_ID", "test_client_id")
+    monkeypatch.setattr("config.CLIENT_SECRET", "test_secret")
+    monkeypatch.setattr("config.INSTANCE_URL", "https://test.salesforce.com")
+    monkeypatch.setattr("config.USERNAME", "user@example.com")
+    monkeypatch.setattr("config.PASSWORD", "pass123")
+    monkeypatch.setattr("config.SECURITY_TOKEN", "")
+
+    import requests as req
+    mock_post = mocker.patch("auth.requests.post")
+    mock_post.return_value.raise_for_status.side_effect = req.HTTPError("401")
+
+    import auth
+    with pytest.raises(req.HTTPError):
+        auth.get_token_via_password()
+
+
+def test_get_valid_tokens_uses_password_flow_when_credentials_set(mocker, monkeypatch):
+    monkeypatch.setattr("config.ACCESS_TOKEN", "")
+    monkeypatch.setattr("config.USERNAME", "user@example.com")
+    monkeypatch.setattr("config.PASSWORD", "pass123")
+
+    mock_pw = mocker.patch("auth.get_token_via_password", return_value={"access_token": "pw_tok"})
+    mock_oauth = mocker.patch("auth.run_oauth_flow")
+
+    import auth
+    result = auth.get_valid_tokens()
+
+    mock_pw.assert_called_once()
+    mock_oauth.assert_not_called()
+    assert result == {"access_token": "pw_tok"}
+
+
+def test_get_valid_tokens_direct_token_takes_priority_over_password(mocker, monkeypatch):
+    monkeypatch.setattr("config.ACCESS_TOKEN", "direct_tok")
+    monkeypatch.setattr("config.USERNAME", "user@example.com")
+    monkeypatch.setattr("config.PASSWORD", "pass123")
+
+    mock_pw = mocker.patch("auth.get_token_via_password")
+    mock_oauth = mocker.patch("auth.run_oauth_flow")
+
+    import auth
+    result = auth.get_valid_tokens()
+
+    mock_pw.assert_not_called()
+    mock_oauth.assert_not_called()
+    assert result == {"access_token": "direct_tok"}

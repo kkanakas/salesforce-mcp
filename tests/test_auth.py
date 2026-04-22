@@ -153,31 +153,17 @@ def test_get_valid_tokens_falls_back_to_oauth_flow_when_refresh_fails(tmp_path, 
 
 
 def test_get_token_from_env_returns_access_token(monkeypatch):
-    import sys
-    sys.modules.pop("config", None)
-    monkeypatch.setenv("SALESFORCE_ACCESS_TOKEN", "direct_token_abc")
-    import importlib
-    import config as cfg
-    importlib.reload(cfg)
+    monkeypatch.setattr("config.ACCESS_TOKEN", "direct_token_abc")
     import auth
-    importlib.reload(auth)
-
     result = auth.get_token_from_env()
     assert result == {"access_token": "direct_token_abc"}
 
 
 def test_get_valid_tokens_uses_direct_token_when_access_token_set(mocker, monkeypatch):
-    import sys
-    sys.modules.pop("config", None)
-    monkeypatch.setenv("SALESFORCE_ACCESS_TOKEN", "mytoken")
-    import importlib
-    import config as cfg
-    importlib.reload(cfg)
-    import auth
-    importlib.reload(auth)
-
+    monkeypatch.setattr("config.ACCESS_TOKEN", "mytoken")
     mock_oauth = mocker.patch("auth.run_oauth_flow")
 
+    import auth
     result = auth.get_valid_tokens()
 
     assert result == {"access_token": "mytoken"}
@@ -227,7 +213,7 @@ def test_get_token_via_password_appends_empty_security_token(mocker, monkeypatch
     import auth
     auth.get_token_via_password()
 
-    call_data = mock_post.call_args[1]["data"]
+    call_data = mock_post.call_args.kwargs["data"]
     assert call_data["password"] == "pass123"
 
 

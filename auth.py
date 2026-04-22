@@ -92,12 +92,14 @@ def run_oauth_flow() -> dict:
 
 
 def get_token_from_env() -> dict:
+    if not config.ACCESS_TOKEN:
+        raise ValueError("SALESFORCE_ACCESS_TOKEN is not set")
     return {"access_token": config.ACCESS_TOKEN}
 
 
 def get_token_via_password() -> dict:
     # Placeholder — implemented in Task 3
-    raise NotImplementedError
+    raise NotImplementedError("Password auth is not yet implemented")
 
 
 def get_valid_tokens() -> dict:
